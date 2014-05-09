@@ -1,0 +1,16 @@
+{
+    "collection_period" : {"hours" : 200},
+    "interceptors": 
+    [
+        {
+            "class_name" : "batching",
+            "config" : 
+            {
+                "target_batch_size" : 500,
+                "max_batch_age" : 100,
+                "thread_count" : 4,
+                "max_queued_batches" : 100
+            }
+        }
+    ]
+}

@@ -1,0 +1,13 @@
+{
+    "collection_period" : 20000,
+    "interceptors": 
+    [
+        {
+            "config" : 
+            {
+                "max_value" : 50
+            }
+        }
+    ]
+    
+}

@@ -1,0 +1,13 @@
+{
+    "collection_period" : 20000,
+    "interceptors": 
+    [
+        {
+            "class_name" : "com.mongodb.hvdf.examples.SampleValidation",
+            "config" : 
+            {
+                "max_value" : 50
+            }
+        }
+    ]
+}

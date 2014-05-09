@@ -1,0 +1,22 @@
+{
+    "collection_period" : 20000,
+    "interceptors": 
+    [
+        {
+            "class_name" : "com.mongodb.hvdf.test.plugins.AppendArrayInterceptor",
+            "config" : 
+            {
+                "push_field" : "x",
+                "push_value" : 2
+            }
+        },
+        {
+            "class_name" : "com.mongodb.hvdf.test.plugins.AppendArrayInterceptor",
+            "config" : 
+            {
+                "push_field" : "x",
+                "push_value" : 1
+            }
+        }
+    ]
+}
