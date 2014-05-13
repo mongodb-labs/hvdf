@@ -1,9 +1,14 @@
 {
-    "collection_period" : 20000,
+    "time_slicing" : 
+    {
+        "type"   : "periodic",
+        "config" : { "period" : {"seconds" : 20} }
+    },
+
     "interceptors": 
     [
         {
-            "class_name" : "com.mongodb.hvdf.examples.Foo",
+            "type" : "com.mongodb.hvdf.examples.Foo",
             "config" : 
             {
                 "max_value" : 50

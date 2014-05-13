@@ -5,6 +5,7 @@ import com.mongodb.DBObject;
 import com.mongodb.hvdf.api.SampleError;
 import com.mongodb.hvdf.api.ServiceException;
 import com.mongodb.hvdf.channels.ChannelInterceptor;
+import com.mongodb.hvdf.configuration.PluginConfiguration;
 
 public class SampleValidation extends ChannelInterceptor {
 
@@ -17,15 +18,11 @@ public class SampleValidation extends ChannelInterceptor {
 	// A value of zero is illegal
 	private static final int illegalValue = 0; 
 
-	@Override
-	public void configure(DBObject configuration) {
-		
+
+	protected SampleValidation(PluginConfiguration config) {
+			
 		// maxValue is configurable, check config for a non-default value
-		if(configuration != null){
-			if(configuration.containsField(MAX_VALUE_CONFIG)){
-				maxValue = (Integer) configuration.get(MAX_VALUE_CONFIG);
-			}
-		}
+		maxValue = config.get(MAX_VALUE_CONFIG, Integer.class);
 	}
 
 	@Override

@@ -7,7 +7,4 @@ public interface ChannelProcessor {
 
 	public void pushSample(DBObject sample, boolean isList, BasicDBList resultIds);
 
-	public void configure(DBObject configuration);
-	
-	public void shutdown();
 }

@@ -1,4 +1,4 @@
-package com.mongodb.hvdf.channels;
+package com.mongodb.hvdf.interceptors;
 
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
@@ -6,6 +6,8 @@ import com.mongodb.DBObject;
 import com.mongodb.hvdf.api.Sample;
 import com.mongodb.hvdf.api.SampleError;
 import com.mongodb.hvdf.api.ServiceException;
+import com.mongodb.hvdf.channels.ChannelInterceptor;
+import com.mongodb.hvdf.configuration.PluginConfiguration;
 import com.mongodb.hvdf.oid.SampleId;
 import com.mongodb.hvdf.oid.SampleIdFactory;
 
@@ -14,7 +16,9 @@ public class RequiredFieldsInterceptor extends ChannelInterceptor{
 	private final SampleIdFactory idFactory;
 	
 	
-	public RequiredFieldsInterceptor(final SampleIdFactory idFactory){
+	public RequiredFieldsInterceptor(
+			PluginConfiguration config, 
+			final SampleIdFactory idFactory){
 		this.idFactory = idFactory;
 	}
 		
@@ -34,12 +38,6 @@ public class RequiredFieldsInterceptor extends ChannelInterceptor{
 		// Call forward the interceptor chain
 		this.next.pushSample(sample, isList, resultIds);
 		
-	}
-
-	@Override
-	public void configure(DBObject configuration) {
-		// TODO This will manage configuration for the type
-		// of ID validation that is to be used	
 	}
 	
 	private void validate(BasicDBObject document, BasicDBList resultIds){

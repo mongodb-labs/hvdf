@@ -1,5 +1,10 @@
 {
-    "collection_period" : 20000,
+    "time_slicing" : 
+    {
+        "type"   : "periodic",
+        "config" : { "period" : {"seconds" : 20} }
+    },
+    
     "interceptors": 
     [
         {

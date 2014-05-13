@@ -5,6 +5,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import com.mongodb.hvdf.api.Sample;
 import com.mongodb.hvdf.channels.ChannelInterceptor;
+import com.mongodb.hvdf.configuration.PluginConfiguration;
 
 public class AppendArrayInterceptor extends ChannelInterceptor {
 
@@ -15,14 +16,11 @@ public class AppendArrayInterceptor extends ChannelInterceptor {
 	private String field  = null; 
 	private Object value = new Integer(0); 
 	
-	@Override
-	public void configure(DBObject configuration) {
+	public AppendArrayInterceptor(PluginConfiguration configuration) {
 		
 		// get the field and value config
-		if(configuration != null){
-			field = (String) configuration.get(TARGET_FIELD_KEY);
-			value = configuration.get(PUSH_VALUE_KEY);
-		}
+		field = configuration.get(TARGET_FIELD_KEY, String.class);
+		value = configuration.get(PUSH_VALUE_KEY, Object.class);
 	}
 
 	@Override

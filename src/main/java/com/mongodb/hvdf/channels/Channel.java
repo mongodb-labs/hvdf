@@ -11,4 +11,8 @@ public interface Channel extends ChannelProcessor{
 			DBObject query, DBObject projection, int limit);
 	
 	public void removeSample(Object sampleId);
+
+	public void configure(DBObject channelConfig);
+
+	void shutdown();
 }

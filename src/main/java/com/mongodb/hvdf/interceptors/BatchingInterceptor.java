@@ -1,4 +1,4 @@
-package com.mongodb.hvdf.channels;
+package com.mongodb.hvdf.interceptors;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
@@ -12,6 +12,8 @@ import org.slf4j.LoggerFactory;
 
 import com.mongodb.BasicDBList;
 import com.mongodb.DBObject;
+import com.mongodb.hvdf.channels.ChannelInterceptor;
+import com.mongodb.hvdf.configuration.PluginConfiguration;
 import com.mongodb.hvdf.configuration.TimePeriod;
 
 public class BatchingInterceptor extends ChannelInterceptor{
@@ -36,9 +38,10 @@ public class BatchingInterceptor extends ChannelInterceptor{
 	private BlockingQueue<Runnable> batchQueue;
 	private ThreadPoolExecutor executor;
 	
-	public BatchingInterceptor(){
+	public BatchingInterceptor(PluginConfiguration config){
 		this.batchTimer = Executors.newScheduledThreadPool(1);
 		this.stagingBatch = new BatchManagementTask();
+		configure(config);
 	}
 		
 	@Override
@@ -52,9 +55,14 @@ public class BatchingInterceptor extends ChannelInterceptor{
 	}
 
 	@Override
-	public void configure(DBObject configuration) {
+	public void shutdown() {
 		
-		super.configure(configuration);
+		// Orderly shutdown, existing batches will flush
+		this.batchTimer.shutdown();
+		this.executor.shutdown();
+	}	
+	
+	private void configure(PluginConfiguration config) {
 		
 		// Pull any specific config from the overrides
 		this.maxBatchSize = config.get("target_batch_size", Integer.class, DEFAULT_BATCH_SIZE);
@@ -73,15 +81,6 @@ public class BatchingInterceptor extends ChannelInterceptor{
 			    TimeUnit.SECONDS, this.batchQueue,
 			    new ThreadPoolExecutor.CallerRunsPolicy());
 	}
-	
-	@Override
-	public void shutdown() {
-		
-		// Orderly shutdown, existing batches will flush
-		this.batchTimer.shutdown();
-		this.executor.shutdown();
-	}
-	
 	
 	// Task class for sending batches to channel
 	private class BatchProcessingTask implements Runnable{

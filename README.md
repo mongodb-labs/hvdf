@@ -69,11 +69,44 @@ Query for a channel time range
     [{"data":{"price":10.25},"date":200000,"source":"reuters","_id":"000000c8a0ee16502b62ca3e"}]
 
 
+
 Channel Plugins
 ===============
 
-As part of channel configuration, plugins can be installed to perform operations on samples
-before (interceptors) and after (listeners) they are persisted to the raw feed collection. 
+Various aspects of how data is processed through a channel can controlled via channel plugins.
+Some plugins affect the way data is physically stored (e.g. time slicing of collections) while
+others can be installed to perform operations on samples before (interceptors) and after (listeners) 
+they are persisted to the raw feed collection. 
+
+All plugins have a similar format in the channel configuration. Each plugin instance will 
+denote a "type" which can be a simplified name (e.g. "batching") for built in plugins or a 
+full class name for user defined types. In addition, each plugin will have a "config" document
+containing all configuration parameters that are specific to that plugin.
+
+Time Slicing
+------------
+
+Time slicing is the process of organizing samples into time partitioned collections in MongoDB. There
+are several performance advantages to doing this, especially when old data is being deleted periodically.
+By default, time slicing is off and all raw data for a channel flows into a single collection, however
+this can be changed by configuring the channel as follows.
+
+    {
+        "time_slicing" : 
+        {
+            "type"   : "periodic",
+            "config" : { "period" : {"weeks" : 4} }
+        }
+    }
+
+This configuration will arrange for a new collection to be used for each 4 week period of data. The 
+"period" may be specified may be specified in years, weeks, hours, minutes, seconds, milliseconds or
+any combination, for example 
+
+            "config" : { "period" : {"days" : 1, "hours" : 12} }
+
+Note that time slicing the channel does not affect queries, the channel will ensure that
+queries spanning time ranges that are larger than a slice will operate across slices as necessary.
 
 Interceptors
 ------------
@@ -86,11 +119,10 @@ will install a single "SampleValidation" interceptor which will limit the value 
 field to a maximum of 50.
 
     {
-        "collection_period" : 20000,
         "interceptors": 
         [
             {
-                "class_name" : "com.mongodb.hvdf.examples.SampleValidation",
+                "type" : "com.mongodb.hvdf.examples.SampleValidation",
                 "config" : 
                 {
                     "max_value" : 50
@@ -99,8 +131,8 @@ field to a maximum of 50.
         ]
     }
 
-Custom interceptors can be written by implementing the com.mongodb.hvdf.channels.ChannelInterceptor
-interface. See the com.mongodb.hvdf.examples.SampleValidation class for an example.
+Custom interceptors can be written by extending the com.mongodb.hvdf.channels.ChannelInterceptor
+class. See the com.mongodb.hvdf.examples.SampleValidation class for an example.
 
 Batching Samples
 ----------------
@@ -117,18 +149,22 @@ The HVDF platform includes a built-in interceptor plugin for this purpose. It ca
 into any channel interceptor chain to provide a batching service for as follows :
 
     {
-        "collection_period" : 20000,
+        "time_slicing" : 
+        {
+            "type"   : "periodic",
+            "config" : { "period" : {"hours" : 12} }
+        }
         "interceptors": 
         [
             {
-                "class_name" : "com.mongodb.hvdf.examples.SampleValidation",
+                "type" : "com.mongodb.hvdf.examples.SampleValidation",
                 "config" : 
                 {
                     "max_value" : 50
                 }
             }
             {
-                "class_name" : "batching",
+                "type" : "batching",
                 "config" : 
                 {
                     "target_batch_size" : 500,

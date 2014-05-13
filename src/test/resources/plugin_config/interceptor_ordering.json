@@ -1,9 +1,14 @@
 {
-    "collection_period" : 20000,
+    "time_slicing" : 
+    {
+        "type"   : "periodic",
+        "config" : { "period" : {"seconds" : 20} }
+    },
+
     "interceptors": 
     [
         {
-            "class_name" : "com.mongodb.hvdf.test.plugins.AppendArrayInterceptor",
+            "type" : "com.mongodb.hvdf.test.plugins.AppendArrayInterceptor",
             "config" : 
             {
                 "push_field" : "x",
@@ -11,7 +16,7 @@
             }
         },
         {
-            "class_name" : "com.mongodb.hvdf.test.plugins.AppendArrayInterceptor",
+            "type" : "com.mongodb.hvdf.test.plugins.AppendArrayInterceptor",
             "config" : 
             {
                 "push_field" : "x",
