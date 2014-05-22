@@ -191,8 +191,25 @@ be reversed.
 Running the service
 ===================
 
-- Duplicate sample.yml and complete the configuration file
-- Run "java -jar ./target/hvdf-0.0.1-SNAPSHOT.jar server sample-config.yml"
+Downloading HVDF
+----------------
+
+- $ sudo yum install git
+- $ git clone https://github.com/10gen-labs/hvdf.git
+
+Compiling HVDF
+--------------
+
+- download and install Maven from http://maven.apache.org/download.cgi
+- install Java: sudo yum install java-1.7.0-openjdk-devel
+- $ cd hvdf
+- $ mvn package -Dmaven.test.skip=true
+
+Running HVDF
+------------
+
+- Copy sample-config.yml to config.yml and modify the configuration file as needed
+- Run "java -jar ./target/hvdf-0.0.1-SNAPSHOT.jar server sample-config.yml". Use a Screen session if possible.
 - Service is now running on port 8080
 
 
