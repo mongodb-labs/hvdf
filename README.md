@@ -280,24 +280,24 @@ series of time sliced collections. The built-in `limit_slices` task can be used 
 with the `time_slicing` plugin to create such a channel setup. The following configuration 
 creates a channel that maintains daily collections for a 30 day period :
 
-{
-    "time_slicing" : 
     {
-        "type"   : "periodic",
-        "config" : { "period" : {"days" : 1} }
-    },
-    "tasks": 
-    [
+        "time_slicing" : 
         {
-            "type" : "limit_slices",
-            "period" : {"seconds" : 3},
-            "config" : 
+            "type"   : "periodic",
+            "config" : { "period" : {"days" : 1} }
+        },
+        "tasks": 
+        [
             {
-                "by_count" : 30
+                "type" : "limit_slices",
+                "period" : {"seconds" : 3},
+                "config" : 
+                {
+                    "by_count" : 30
+                }
             }
-        }
-    ]
-}
+        ]
+    }
 
 
 
