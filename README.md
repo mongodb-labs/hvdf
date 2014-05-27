@@ -87,7 +87,7 @@ full class name for user defined types. In addition, each plugin will have a "co
 containing all configuration parameters that are specific to that plugin.
 
 The individual configuration blocks for various built-in plugins are discussed below, however
-these may be assembled together in various ways ([see example](src/test/resources/complex_config_example.json))
+these may be assembled together in various ways ([see example](src/test/resources/plugin_config/complex_config_example.json))
 to create a set of complex channel configurations tailors to the needs of each data stream.
 
 
@@ -162,7 +162,7 @@ into any channel interceptor chain to provide a batching service as follows :
         {
             "type"   : "periodic",
             "config" : { "period" : {"hours" : 12} }
-        }
+        },
         "interceptors": 
         [
             {
@@ -286,7 +286,6 @@ creates a channel that maintains daily collections for a 30 day period :
         "type"   : "periodic",
         "config" : { "period" : {"days" : 1} }
     },
-    
     "tasks": 
     [
         {
