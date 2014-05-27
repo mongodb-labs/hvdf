@@ -12,6 +12,12 @@ import com.mongodb.hvdf.api.ServiceException;
 
 public class PluginConfiguration {
 	
+	public static class HVDF{
+		public static final String ALLOCATOR = "hvdf_allocator";
+		public static final String DB = "hvdf_database";
+		public static final String PREFIX = "hvdf_prefix";
+	}
+	
 	private static HashSet<Class<?>> registeredClasses = new HashSet<Class<?>>();
 	
 	static{
@@ -62,7 +68,7 @@ public class PluginConfiguration {
 		try{			
 			if(expectedType.equals(PluginConfiguration.class)){
 				// This is an embedded config document
-				return (T) (new PluginConfiguration((DBObject) itemObj, this.targetClass));
+				return expectedType.cast((new PluginConfiguration((DBObject) itemObj, this.targetClass)));
 			}
 			else if(registeredClasses.contains(expectedType)){
 				// One of the specially handled types, construct
@@ -72,7 +78,7 @@ public class PluginConfiguration {
 			}
 			else{
 				// This must be directly convertible to target type
-				return (T) itemObj;
+				return expectedType.cast(itemObj);
 			}
 		} 
 		catch(ClassCastException ccex){

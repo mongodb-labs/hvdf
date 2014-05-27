@@ -11,6 +11,9 @@ import com.mongodb.hvdf.api.FrameworkError;
 import com.mongodb.hvdf.api.ServiceException;
 import com.mongodb.hvdf.configuration.PluginConfiguration;
 import com.mongodb.hvdf.interceptors.BatchingInterceptor;
+import com.mongodb.hvdf.interceptors.RetryInterceptor;
+import com.mongodb.hvdf.tasks.IndexingTask;
+import com.mongodb.hvdf.tasks.LimitCollectionsTask;
 
 public class PluginFactory {
 
@@ -21,9 +24,12 @@ public class PluginFactory {
 			new HashMap<String, String>();
 	
 	static{
+		registeredPlugins.put("retry", RetryInterceptor.class.getName());
 		registeredPlugins.put("batching", BatchingInterceptor.class.getName());
 		registeredPlugins.put("periodic", PeriodicAllocator.class.getName());
 		registeredPlugins.put("no_slicing", SingleCollectionAllocator.class.getName());
+		registeredPlugins.put("ensure_indexes", IndexingTask.class.getName());
+		registeredPlugins.put("limit_slices", LimitCollectionsTask.class.getName());
 	}
 
 

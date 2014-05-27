@@ -23,7 +23,7 @@ public class BatchingInterceptor extends ChannelInterceptor{
 	// Configuration defaults
 	private static final int DEFAULT_BATCH_SIZE = 1000;
 	private static final int DEFAULT_NTHREADS = 2;
-	private static final int DEFAULT_MAX_BATCHES = 1000;
+	private static final int DEFAULT_MAX_BATCHES = 100;
 	private static final TimePeriod DEFAULT_MAX_AGE = new TimePeriod(1000);
 	
 	// Configuration values
@@ -93,7 +93,11 @@ public class BatchingInterceptor extends ChannelInterceptor{
 
 		@Override
 		public void run() {
-			next.pushSample(batch, true, new BasicDBList());
+			try{
+				next.pushSample(batch, true, new BasicDBList());
+			} catch(Exception ex){
+				logger.error("Failed to write batch", ex);
+			}
 		}
 	}
 	

@@ -17,4 +17,13 @@ public class DatabaseTools {
         client.close();	
 	}
 
+	public static void dropCollection(MongoClientURI uri, String dbName) 
+			throws UnknownHostException{
+		
+		MongoClient client = new MongoClient(uri);
+        DB database = client.getDB(dbName);
+        database.dropDatabase();
+        client.close();	
+	}
+
 }

@@ -1,0 +1,30 @@
+{
+    "time_slicing" : 
+    {
+        "type"   : "periodic",
+        "config" : { "period" : {"seconds" : 1000} }
+    },
+    
+    "interceptors": 
+    [
+    ],
+    
+    "tasks": 
+    [
+        {
+            "type" : "ensure_indexes",
+            "period" : {"seconds" : 1},
+            "config" : 
+            {
+                "indexes": 
+                [
+                    {
+                        "keys" : {"data.v" : 1},
+                        "options" : {"unique" : true},
+                        "skips" : 2
+                    }
+                ]
+            }
+        }
+    ]
+}

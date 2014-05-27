@@ -19,4 +19,10 @@ public class ChannelServiceConfiguration extends MongoServiceConfiguration {
      * and prepare all configured channel before making the feed service available
      */
     public boolean preload_configured_channels = true;
+
+    /**
+     * The channel service manages the scheduling and execution of periodic
+     * channel tasks. Sets the maximum number of threads assigned to executing these.
+     */
+	public int channel_task_thread_pool_size = 2;
 }

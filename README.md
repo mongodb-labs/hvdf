@@ -1,7 +1,11 @@
-A High Volume Data Feed
-=======================
+High Volume Data Feed
+=====================
 
-The service is implemented using [dropwizard](http://www.dropwizard.io).
+The HVDF project is a framework for efficiently validating, storing, indexing, querying 
+and purging time series data in MongoDB. It allows the user to define and configure channels
+to perform various operations on the datastream as it moves through the system.
+  
+HVDF exposes a simple interface implemented using [dropwizard](http://www.dropwizard.io).
 
 REST API
 --------
@@ -24,7 +28,7 @@ recommended structure :
         data    : {x : 5}  // A document containing actual data
     }                  
 
-In addition to the requires timestamp and source, any other custom metadata may be added at the 
+In addition to the required timestamp and source, any other custom metadata may be added at the 
 root level of the sample document.
 
 
@@ -69,7 +73,6 @@ Query for a channel time range
     [{"data":{"price":10.25},"date":200000,"source":"reuters","_id":"000000c8a0ee16502b62ca3e"}]
 
 
-
 Channel Plugins
 ===============
 
@@ -82,6 +85,12 @@ All plugins have a similar format in the channel configuration. Each plugin inst
 denote a "type" which can be a simplified name (e.g. "batching") for built in plugins or a 
 full class name for user defined types. In addition, each plugin will have a "config" document
 containing all configuration parameters that are specific to that plugin.
+
+The individual configuration blocks for various built-in plugins are discussed below, however
+these may be assembled together in various ways ([see example](src/test/resources/complex_config_example.json))
+to create a set of complex channel configurations tailors to the needs of each data stream.
+
+
 
 Time Slicing
 ------------
@@ -103,13 +112,13 @@ This configuration will arrange for a new collection to be used for each 4 week 
 "period" may be specified may be specified in years, weeks, hours, minutes, seconds, milliseconds or
 any combination, for example 
 
-            "config" : { "period" : {"days" : 1, "hours" : 12} }
+        "config" : { "period" : {"days" : 1, "hours" : 12} }
 
 Note that time slicing the channel does not affect queries, the channel will ensure that
 queries spanning time ranges that are larger than a slice will operate across slices as necessary.
 
 Interceptors
-------------
+============
 
 Interceptors are a chain of plugins that process samples in order before they persisted. 
 Interceptors can be used for validation, augmentation and batching of samples.
@@ -122,7 +131,7 @@ field to a maximum of 50.
         "interceptors": 
         [
             {
-                "type" : "com.mongodb.hvdf.examples.SampleValidation",
+                "type"   : "com.mongodb.hvdf.examples.SampleValidation",
                 "config" : 
                 {
                     "max_value" : 50
@@ -146,7 +155,7 @@ more convenient (especially in a multi-client scenario) to have the server group
 for a channel automatically across all clients.
 
 The HVDF platform includes a built-in interceptor plugin for this purpose. It can be configured
-into any channel interceptor chain to provide a batching service for as follows :
+into any channel interceptor chain to provide a batching service as follows :
 
     {
         "time_slicing" : 
@@ -157,7 +166,7 @@ into any channel interceptor chain to provide a batching service for as follows 
         "interceptors": 
         [
             {
-                "type" : "com.mongodb.hvdf.examples.SampleValidation",
+                "type"   : "com.mongodb.hvdf.examples.SampleValidation",
                 "config" : 
                 {
                     "max_value" : 50
@@ -167,10 +176,10 @@ into any channel interceptor chain to provide a batching service for as follows 
                 "type" : "batching",
                 "config" : 
                 {
-                    "target_batch_size" : 500,
-                    "max_batch_age" : 100,
-                    "thread_count" : 4,
-                    "max_queued_batches" : 100
+                    "target_batch_size"  : 500,
+                    "max_batch_age"      : 100,
+                    "thread_count"       : 4,
+                    "max_queued_batches" : 50
                 }
             }
         ]
@@ -180,13 +189,118 @@ In this example the channel will attempt to collect and process batches of 500 s
 at a time even if they arrive at the API individually. If there are not enough samples
 arrived within 100 milliseconds to fill a batch, a partial batch will be processed. A 
 pool of 4 threads will be allocated to process batches through to the database for 
-this channel and the maximum number of queued batches is 100, after which backpressure
+this channel and the maximum number of queued batches is 50, after which backpressure
 is applied to the inserting clients.
 
 Note that the order of interceptors is important, in this example all incoming samples
 will pass through the custom validation plugin first and may not even reach the batching
 process. If it was preferable that validation occurred in batches, this order can simply
 be reversed.
+
+Retry 
+-----
+
+The `retry` interceptor can be added to the chain for handling and retrying upon insert 
+errors. For example the following interceptor chain will both created batches and retry 
+inserts when the database cannot be written to.
+
+    "interceptors": 
+    [
+        {
+            "type"   : "batching",
+            "config" : 
+            {
+                "target_batch_size"  : 1000,
+                "max_batch_age"      : 200,
+                "thread_count"       : 2,
+                "max_queued_batches" : 100
+            }
+        },
+        {
+            "type" : "retry",
+            "config" : 
+            {
+                "max_retries" : 3,
+                "retry_period" : {"seconds" : 5}
+            }
+        }
+    ],
+
+
+Tasks
+=====
+
+A channel may be configured to run periodic tasks to maintain or manipulate its data.
+All tasks must specify a type, period and config and will be executed internally on
+the given schedule. Tasks are useful for performing operations on complete time slices
+of data after they have been written or for performing pre-emptive work on collections 
+prior to data arriving for that time slice.
+
+Indexing
+--------
+
+The built-in `ensure_indexes` task can be used to create indexes on time sliced collections 
+as they are created. The task will periodically monitor the channel for new collections and 
+create specified indexes. For example the following task block can be added to a channel's
+configuration :
+
+    "tasks": 
+    [
+        {
+            "type"   : "ensure_indexes",
+            "period" : {"seconds" : 3},
+            "config" : 
+            {
+                "indexes": 
+                [
+                    {
+                        "keys"    : {"data.v" : 1},
+                        "options" : {"unique" : true},
+                        "skips"   : 2
+                    }
+                ]
+            }
+        }
+    ]
+
+The `indexes` section specifies details of the indexes to be created. The `keys` and `options`
+use the same format as the MongoDB [ensureIndex](http://docs.mongodb.org/manual/reference/method/db.collection.ensureIndex/#db.collection.ensureIndex)
+collection method. In this example, we are adding an index on the field `v` which is nested inside
+the top level `data` document.
+
+The `skips` field is optional and it allows the user to specify that the latest (2 in this case) 
+collections will not be indexed, allowing the index build to be deferred until the collections
+are no longer being actively written to.
+
+Capping Channel by Time
+-----------------------
+
+For some channels, it may be desirable to maintain a fixed width window of data as a rolling
+series of time sliced collections. The built-in `limit_slices` task can be used in conjunction
+with the `time_slicing` plugin to create such a channel setup. The following configuration 
+creates a channel that maintains daily collections for a 30 day period :
+
+{
+    "time_slicing" : 
+    {
+        "type"   : "periodic",
+        "config" : { "period" : {"days" : 1} }
+    },
+    
+    "tasks": 
+    [
+        {
+            "type" : "limit_slices",
+            "period" : {"seconds" : 3},
+            "config" : 
+            {
+                "by_count" : 30
+            }
+        }
+    ]
+}
+
+
 
 Running the service
 ===================

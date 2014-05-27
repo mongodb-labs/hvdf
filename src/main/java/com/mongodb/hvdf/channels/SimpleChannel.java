@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
@@ -11,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
+import com.mongodb.BulkWriteError;
 import com.mongodb.BulkWriteException;
 import com.mongodb.BulkWriteOperation;
 import com.mongodb.BulkWriteResult;
@@ -22,6 +24,8 @@ import com.mongodb.hvdf.allocators.CollectionAllocator;
 import com.mongodb.hvdf.allocators.SingleCollectionAllocator;
 import com.mongodb.hvdf.api.Sample;
 import com.mongodb.hvdf.configuration.PluginConfiguration;
+import com.mongodb.hvdf.configuration.PluginConfiguration.HVDF;
+import com.mongodb.hvdf.configuration.TimePeriod;
 import com.mongodb.hvdf.interceptors.RequiredFieldsInterceptor;
 import com.mongodb.hvdf.oid.HiDefTimeIdFactory;
 import com.mongodb.hvdf.oid.SampleIdFactory;
@@ -38,12 +42,14 @@ public class SimpleChannel implements Channel {
 					SingleCollectionAllocator.class.getName()), SimpleChannel.class);
 	private static final String INTERCEPTOR_LIST = "interceptors";
 	private static final String LISTENER_LIST = "listeners";
+	private static final String TASK_LIST = "tasks";
 	
 	// Channel components
 	private SampleIdFactory idFactory;
 	private CollectionAllocator allocator;
 	private ChannelInterceptor interceptorChain;
 	private List<ChannelListener> listeners;
+	private List<ChannelTask> taskList;
 	private ChannelInterceptor loopbackInterceptor = new ChannelInterceptor() {
 
 		@Override
@@ -57,14 +63,15 @@ public class SimpleChannel implements Channel {
 	// Database reference and prefix for collection names
 	private final DB database;
 	private final String channelName;
+	private final String feedName;
 
 	private static final BasicDBObject idDescending = 
 			new BasicDBObject(Sample.ID_KEY, -1);
-	
-	SimpleChannel(DB db, String channelName){
+		
+	SimpleChannel(DB db, String feedName, String channelName){
 		this.database = db;
+		this.feedName = feedName;
 		this.channelName = channelName;		
-		configure(null);
 	}
 	
 	@Override
@@ -118,12 +125,12 @@ public class SimpleChannel implements Channel {
 	}
 
 	@Override
-	public void configure(DBObject configuration) {
+	public void configure(DBObject configuration, ChannelTaskScheduler scheduler) {
 		
 		// Some configuration context for plugins
 		HashMap<String, Object> injectedConfig = new HashMap<String, Object>();
-		injectedConfig.put("database", database);
-		injectedConfig.put("prefix", channelName + "_raw_");
+		injectedConfig.put(HVDF.DB, database);
+		injectedConfig.put(HVDF.PREFIX, channelName + "_raw_");
 		
 		// Use the PluginConfiguration class to represent the raw config
 		PluginConfiguration parsedConfig = new PluginConfiguration(configuration, this.getClass());
@@ -131,7 +138,45 @@ public class SimpleChannel implements Channel {
 		// Create the timeslice allocator
 		PluginConfiguration allocatorConfig = parsedConfig.get(
 				TIME_SLICING_KEY, PluginConfiguration.class, DEFAULT_TIME_SLICING);
-		allocator = PluginFactory.loadPlugin(CollectionAllocator.class, allocatorConfig, injectedConfig);	
+		allocator = PluginFactory.loadPlugin(CollectionAllocator.class, allocatorConfig, injectedConfig);
+		injectedConfig.put(HVDF.ALLOCATOR, allocator);
+		
+		// Use an ObjectId that can support ms resolution time and
+		// install the interceptor to insert them
+		this.idFactory = new HiDefTimeIdFactory();
+
+		// Setup the interceptor chain
+		configureInterceptors(parsedConfig);
+				
+		// Create an empty list of listeners
+		this.listeners = new ArrayList<ChannelListener>();
+
+		// Setup tasks for the channel 
+		configureTasks(parsedConfig, scheduler, injectedConfig);
+	}
+
+	private void configureTasks(PluginConfiguration parsedConfig, 
+			ChannelTaskScheduler scheduler, HashMap<String, Object> injectedConfig) {
+		
+		scheduler.cancelAllForChannel(this.feedName, this.channelName);
+		
+		// Load the task list if present		
+		List<PluginConfiguration> configList = parsedConfig.getList(TASK_LIST, PluginConfiguration.class);
+		this.taskList = new ArrayList<ChannelTask>(configList.size());
+
+		// Get each configured task object
+		for(PluginConfiguration pluginConfig : configList){			
+			long period = (pluginConfig.get(ChannelTask.PERIOD_KEY, TimePeriod.class)).getAs(TimeUnit.MILLISECONDS);
+			ChannelTask current = PluginFactory.loadPlugin(ChannelTask.class, pluginConfig, injectedConfig);
+			if(current != null){				
+				current.setPeriod(period);
+				this.taskList.add(current);
+				scheduler.scheduleTask(this.feedName, this.channelName, current, period);
+			}
+		}		
+	}
+
+	private void configureInterceptors(PluginConfiguration parsedConfig) {
 		
 		// We always have a loopback interceptor for storing the actual document
 		this.interceptorChain = this.loopbackInterceptor ;
@@ -150,18 +195,11 @@ public class SimpleChannel implements Channel {
 			}
 		}
 		
-		// Use an ObjectId that can support ms resolution time and
-		// install the interceptor to insert them
-		this.idFactory = new HiDefTimeIdFactory();
-
 		// Required fields interceptor goes on the front
 		RequiredFieldsInterceptor requiredFields = 
 				new RequiredFieldsInterceptor(null, this.idFactory);
 		requiredFields.setNext(this.interceptorChain);
-		this.interceptorChain = requiredFields;
-		
-		// Create an empty list of listeners
-		this.listeners = new ArrayList<ChannelListener>();
+		this.interceptorChain = requiredFields;		
 	}
 
 	private void storeSample(DBObject sample, boolean isList, BasicDBList resultList) {
@@ -186,46 +224,79 @@ public class SimpleChannel implements Channel {
 		// The batch may span collection splits, so maintain
 		// a current collection and batch operation
 		BulkWriteOperation currentOp = null;
-		DBCollection currentColl = null;
+		int currentOpOffset = 0;
+		int sampleIdx = 0;
+		DBCollection currentColl = null;	
 		
 		logger.debug("Received batch of size : {}", sample.size());
-		for(Object sampleObj : sample){
+		
+		try{
+			for(; sampleIdx < sample.size(); ++sampleIdx){
+				
+				// prepare the sample to batch
+				BasicDBObject doc = (BasicDBObject) (sample.get(sampleIdx));
+				long timestamp = doc.getLong(Sample.TS_KEY);
+				DBCollection collection = allocator.getCollection(timestamp);
+				
+				// if the collection has changed, commit the current
+				// batch to the collection and start new
+				if(collection.equals(currentColl) == false){
+					executeBatchWrite(currentOp, sample);
+					currentColl = collection;
+					currentOp = collection.initializeUnorderedBulkOperation();
+					currentOpOffset = sampleIdx;
+				}
+				
+				// put the doc insert into the batch
+				currentOp.insert(doc);
+			}		
 			
-			// prepare the sample to batch
-			BasicDBObject doc = ((BasicDBObject) sampleObj);
-			long timestamp = doc.getLong(Sample.TS_KEY);
-			DBCollection collection = allocator.getCollection(timestamp);
+			// Finalize the last batch
+			executeBatchWrite(currentOp, sample);		
 			
-			// if the collection has changed, commit the current
-			// batch to the collection and start new
-			if(collection.equals(currentColl) == false){
-				executeBatchWrite(currentOp, sample);
-				currentColl = collection;
-				currentOp = collection.initializeUnorderedBulkOperation();
+		} catch(Exception ex){
+			
+			// One of the bulk writes has failed
+			BasicDBList failedDocs = new BasicDBList();
+			if(ex instanceof BulkWriteException){
+				
+				// We need to figure out the failures and remove the writes
+				// that worked from the batch
+				int batchSize = sampleIdx - currentOpOffset;
+				BulkWriteException bwex = (BulkWriteException)ex;
+				int errorCount = bwex.getWriteErrors().size(); 
+				if(errorCount < batchSize){
+					
+					for(BulkWriteError we : bwex.getWriteErrors()){
+						failedDocs.add(sample.get(currentOpOffset + we.getIndex()));
+					}
+					
+					// since we have accounted for the failures in the current
+					// batch, move the offset forward to the last sample
+					currentOpOffset = sampleIdx;					
+				}
 			}
 			
-			// put the doc insert into the batch
-			currentOp.insert(doc);
-		}		
-		
-		// Finalize the last batch
-		executeBatchWrite(currentOp, sample);			
+			// If this happened part way through the batch, send remaining 
+			// docs to failed list and update sample to contain only failed docs
+			if(currentOpOffset > 0){
+				for(; currentOpOffset < sample.size(); ++currentOpOffset)
+					failedDocs.add(sample.get(currentOpOffset));
+				sample.clear();
+				sample.addAll(failedDocs);	
+			}
+			
+			throw ex;
+		}
 	}
 
 
 	private void executeBatchWrite(BulkWriteOperation batchOp, BasicDBList fullBatch) {
 
 		if(batchOp != null){
-			try{
-				BulkWriteResult result = batchOp.execute();
-				logger.debug("Wrote sample batch - sent {} : inserted {}", 
-						fullBatch.size(), result.getInsertedCount());
-			} catch(BulkWriteException bwex){
-				
-				// TODO : collect and log information about failure, pull
-				// out the relevant docs from fullBatch and construct a 
-				// ServiceException that has all the information
-			}
+			BulkWriteResult result = batchOp.execute();
+			logger.debug("Wrote sample batch - sent {} : inserted {}", 
+					fullBatch.size(), result.getInsertedCount());
 		}
 	}
 

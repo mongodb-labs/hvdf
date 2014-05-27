@@ -19,7 +19,7 @@ public class SampleValidation extends ChannelInterceptor {
 	private static final int illegalValue = 0; 
 
 
-	protected SampleValidation(PluginConfiguration config) {
+	public SampleValidation(PluginConfiguration config) {
 			
 		// maxValue is configurable, check config for a non-default value
 		maxValue = config.get(MAX_VALUE_CONFIG, Integer.class);

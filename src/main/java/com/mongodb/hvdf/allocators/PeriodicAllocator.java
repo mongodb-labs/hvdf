@@ -1,17 +1,18 @@
 package com.mongodb.hvdf.allocators;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.hvdf.configuration.PluginConfiguration;
+import com.mongodb.hvdf.configuration.PluginConfiguration.HVDF;
 import com.mongodb.hvdf.configuration.TimePeriod;
 
 public class PeriodicAllocator implements CollectionAllocator{
 	
 	private static final String TIME_PERIOD = "period";
-	private static final String PREFIX = "prefix";
-	private static final String DB = "database";
 	
 	private long period = 0;
 	private String prefix = null;
@@ -22,9 +23,9 @@ public class PeriodicAllocator implements CollectionAllocator{
 		
 		TimePeriod tPeriod = config.get(TIME_PERIOD, TimePeriod.class);
 		period = tPeriod.getAs(TimeUnit.MILLISECONDS);
-		prefix = config.get(PREFIX, String.class);
+		prefix = config.get(HVDF.PREFIX, String.class);
 		prefixLength = prefix.length();
-		db = config.get(DB, DB.class);
+		db = config.get(HVDF.DB, DB.class);
 	}
 	
 
@@ -40,7 +41,7 @@ public class PeriodicAllocator implements CollectionAllocator{
 		
 		// figure out the current timeslice
 		String currentName = current.getName();
-		long currSuffix = Long.parseLong(currentName.substring(this.prefixLength));
+		long currSuffix = getSuffix(currentName);
 		
 		// If minTime is before the lower bound of this collection,
 		// just get the collection with the previous suffix
@@ -49,6 +50,26 @@ public class PeriodicAllocator implements CollectionAllocator{
 		}
 
 		return null;
+	}
+	
+	@Override
+	public List<SliceDetails> getCollectionSlices(){
+		
+		// get the collection names
+		List<SliceDetails> result = new ArrayList<SliceDetails>();
+		
+		for(String name : this.db.getCollectionNames()){
+			if(name.startsWith(this.prefix)){
+				long minTime = getSuffix(name)*this.period;
+				result.add(new SliceDetails(name, minTime, minTime + this.period - 1));
+			}			
+		}
+		
+		return result;
+	}
+	
+	private long getSuffix(final String collName){
+		return Long.parseLong(collName.substring(this.prefixLength));
 	}
 
 }

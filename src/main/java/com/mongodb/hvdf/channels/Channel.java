@@ -12,7 +12,7 @@ public interface Channel extends ChannelProcessor{
 	
 	public void removeSample(Object sampleId);
 
-	public void configure(DBObject channelConfig);
+	public void configure(DBObject channelConfig, ChannelTaskScheduler scheduler);
 
 	void shutdown();
 }

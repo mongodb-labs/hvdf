@@ -4,7 +4,8 @@ import javax.ws.rs.core.Response.Status;
 
 public enum DatabaseError implements ServiceException.ErrorCode{
 			
-    CANNOT_CONNECT(4001);
+    CANNOT_CONNECT(4001),
+    CANNOT_CREATE_INDEX(4002);
 	
     private final Status response;
     private final int number;

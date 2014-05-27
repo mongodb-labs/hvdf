@@ -1,0 +1,56 @@
+{
+    "time_slicing" : 
+    {
+        "type"   : "periodic",
+        "config" : { "period" : {"weeks" : 1} }
+    },
+    
+    "interceptors": 
+    [
+        {
+            "type" : "batching",
+            "config" : 
+            {
+                "target_batch_size"  : 500,
+                "max_batch_age"      : 100,
+                "thread_count"       : 2,
+                "max_queued_batches" : 50
+            }
+        },
+        {
+            "type" : "retry",
+            "config" : 
+            {
+                "max_retries" : 3,
+                "retry_period" : {"seconds" : 5}
+            }
+        }
+    ],
+    
+    "tasks": 
+    [
+        {
+            "type" : "ensure_indexes",
+            "period" : {"seconds" : 3},
+            "config" : 
+            {
+                "indexes": 
+                [
+                    {
+                        "keys"    : {"data.v" : 1},
+                        "options" : {"unique" : true},
+                        "skips"   : 2
+                    }
+                ]
+            }
+        },
+        {
+            "type" : "limit_slices",
+            "period" : {"seconds" : 3},
+            "config" : 
+            {
+                "by_count" : 52
+            }
+        }
+    ]
+}
