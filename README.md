@@ -69,7 +69,7 @@ Posting samples always returns an array of ObjectID's, one for each sample succe
 Query for a channel time range
 --------------------------------
 
-    curl "localhost:8080/feed/stocks/MNGO/data?ts=500&range=400"
+    curl "localhost:8080/feed/stocks/MNGO/data?ts=500&range=400&limit=10"
     [{"data":{"price":10.25},"date":200000,"source":"reuters","_id":"000000c8a0ee16502b62ca3e"}]
 
 

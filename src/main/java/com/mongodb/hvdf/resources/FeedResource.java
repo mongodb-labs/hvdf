@@ -66,7 +66,7 @@ public class FeedResource {
             @QueryParam("range") long timeRange,
             @QueryParam("query") JSONParam query,
         	@QueryParam("proj") JSONParam projection,
-        	@QueryParam("limit") int limit) {
+        	@QueryParam("limit") @DefaultValue("100") int limit) {
 
         // Find the correct channel implementation
     	Channel channel = channelService.getChannel(feedId, channelId);
