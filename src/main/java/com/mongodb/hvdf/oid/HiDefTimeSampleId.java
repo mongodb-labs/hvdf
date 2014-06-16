@@ -38,12 +38,12 @@ public class HiDefTimeSampleId implements SampleId {
 	}
 
 	@Override
-	public long getSourceId() {
-		return 0;
+	public Object getSourceId() {
+		return null;
 	}
 
 	@Override
-	public ObjectId toObjectId() {
+	public Object toObject() {
 		
 		if(oid == null){
 			

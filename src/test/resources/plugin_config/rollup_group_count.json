@@ -1,0 +1,77 @@
+{    
+    "id_type" : 
+    {
+        "type"   : "source_time_document",
+        "config" : {  }
+    },
+    
+    "time_slicing" : 
+    {
+        "type"   : "periodic",
+        "config" : { "period" : {"day" : 1} }
+    },
+    
+    "storage" :
+    {
+    	"type"   : "rollup",
+    	"config" : 
+    	{
+    	    "document_period" : {"hours" : 1},
+    	    "rollup_ops" :
+    	    [
+    	    	{
+    	    	    "type"   : "count",
+    	    	    "config" : 
+    	    	    {
+    	    	         "data.v" : true
+    	    	    }
+    	    	},
+    	    	{
+    	    	    "type"   : "group_count",
+    	    	    "config" : 
+    	    	    {
+    	    	         "data.v" : [5,10,15,20]
+    	    	    }
+    	    	}
+    	    ]	
+    	}
+    },
+    
+    "interceptors": 
+    [
+         {
+            "type" : "retry",
+            "config" : 
+            {
+                "max_retries" : 3,
+                "retry_period" : {"seconds" : 5}
+            }
+        }
+    ],
+    
+    "tasks": 
+    [
+        {
+            "type" : "ensure_indexes",
+            "period" : {"seconds" : 3},
+            "config" : 
+            {
+                "indexes": 
+                [
+                    {
+                        "keys"    : {"data.v.max" : 1},
+                        "skips"   : 2
+                    }
+                ]
+            }
+        },
+        {
+            "type" : "limit_slices",
+            "period" : {"seconds" : 3},
+            "config" : 
+            {
+                "by_count" : 104
+            }
+        }
+    ]
+}

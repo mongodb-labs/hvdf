@@ -7,7 +7,7 @@ import com.mongodb.hvdf.api.Sample;
 
 public interface Channel extends ChannelProcessor{
 
-	public List<Sample> query(long timeStart, long timeRange,
+	public List<Sample> query(Object source, long timeStart, long timeRange,
 			DBObject query, DBObject projection, int limit);
 	
 	public void removeSample(Object sampleId);

@@ -8,18 +8,11 @@ import com.mongodb.hvdf.api.SampleError;
 import com.mongodb.hvdf.api.ServiceException;
 import com.mongodb.hvdf.channels.ChannelInterceptor;
 import com.mongodb.hvdf.configuration.PluginConfiguration;
-import com.mongodb.hvdf.oid.SampleId;
-import com.mongodb.hvdf.oid.SampleIdFactory;
 
 public class RequiredFieldsInterceptor extends ChannelInterceptor{
-
-	private final SampleIdFactory idFactory;
 	
-	
-	public RequiredFieldsInterceptor(
-			PluginConfiguration config, 
-			final SampleIdFactory idFactory){
-		this.idFactory = idFactory;
+	public RequiredFieldsInterceptor(PluginConfiguration config){
+		
 	}
 		
 	@Override
@@ -67,15 +60,7 @@ public class RequiredFieldsInterceptor extends ChannelInterceptor{
 								SampleError.INVALID_SAMPLE).set(Sample.TS_KEY, tsObj);
 					}
 				}
-			}
-			
-			// Now use the ID strategy to 
-			// Create an oid to embed the sample time
-			if(idFactory != null){
-				SampleId _id = idFactory.createId(0L, timestamp);
-				document.put(Sample.ID_KEY, _id.toObjectId());
-				resultIds.add(_id.toObjectId());
-			}
+			}			
 		}					
 	}
 	

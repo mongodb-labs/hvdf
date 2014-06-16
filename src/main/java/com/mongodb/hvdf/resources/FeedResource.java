@@ -62,6 +62,7 @@ public class FeedResource {
     public List<Sample> queryChannel(
             @PathParam("feed") String feedId,
             @PathParam("channel") String channelId,
+            @QueryParam("source") String sourceString,
             @QueryParam("ts") long timeStart,
             @QueryParam("range") long timeRange,
             @QueryParam("query") JSONParam query,
@@ -70,11 +71,17 @@ public class FeedResource {
 
         // Find the correct channel implementation
     	Channel channel = channelService.getChannel(feedId, channelId);
+    	
+    	// The source may be null or JSON
+    	Object source = null;
+    	if(sourceString != null){
+    		source = JSON.parse(sourceString);
+    	}
     	    	
         // push it to the channel correct
     	DBObject dbQuery = query != null ? query.toDBObject() : null;
     	DBObject dbProjection = projection != null ? projection.toDBObject() : null;
-    	return channel.query(timeStart, timeRange, dbQuery, dbProjection, limit);    
+    	return channel.query(source, timeStart, timeRange, dbQuery, dbProjection, limit);    
     }
 
     @PUT

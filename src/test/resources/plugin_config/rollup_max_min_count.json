@@ -1,15 +1,14 @@
-{
-    
-    "storage" :
+{    
+    "id_type" : 
     {
-    	"type"   : "raw",
-    	"config" : {}
+        "type"   : "source_time_document",
+        "config" : {  }
     },
-
-    "storage" :
+    
+    "time_slicing" : 
     {
-    	"type"   : "devnull",
-    	"config" : {}
+        "type"   : "periodic",
+        "config" : { "period" : {"day" : 1} }
     },
     
     "storage" :
@@ -17,55 +16,44 @@
     	"type"   : "rollup",
     	"config" : 
     	{
-    	    "document_period" : { "period" : {"hours" : 1},
+    	    "document_period" : {"hours" : 1},
     	    "rollup_ops" :
     	    [
     	    	{
-    	    	    "type"   : "bucket_count",
+    	    	    "type"   : "max",
     	    	    "config" : 
     	    	    {
-    	    	        "v" : [50,75,100],
-    	    	        "x" : [75]
+    	    	         "data.v" : true
     	    	    }
     	    	},
     	    	{
     	    	    "type"   : "min",
     	    	    "config" : 
     	    	    {
-    	    	        v : true,
-    	    	        x : true
+    	    	         "data.v" : true
     	    	    }
     	    	},
     	    	{
-    	    	    "type"   : "max",
+    	    	    "type"   : "count",
     	    	    "config" : 
     	    	    {
-    	    	         : true
+    	    	         "data.v" : true
+    	    	    }
+    	    	},
+    	    	{
+    	    	    "type"   : "total",
+    	    	    "config" : 
+    	    	    {
+    	    	         "data.v" : true
     	    	    }
     	    	}
     	    ]	
     	}
     },
     
-    "time_slicing" : 
-    {
-        "type"   : "periodic",
-        "config" : { "period" : {"weeks" : 1} }
-    },
-    
     "interceptors": 
     [
-        {
-            "type" : "batching",
-            "config" : 
-            {
-                "target_batch_size"  : 500,
-                "max_batch_age"      : 100,
-                "thread_count"       : 2,
-                "max_queued_batches" : 50
-            }
-        },
-        {
+         {
             "type" : "retry",
             "config" : 
             {
@@ -85,8 +73,7 @@
                 "indexes": 
                 [
                     {
-                        "keys"    : {"data.v" : 1},
-                        "options" : {"unique" : true},
+                        "keys"    : {"data.v.max" : 1},
                         "skips"   : 2
                     }
                 ]
@@ -97,7 +84,7 @@
             "period" : {"seconds" : 3},
             "config" : 
             {
-                "by_count" : 52
+                "by_count" : 104
             }
         }
     ]

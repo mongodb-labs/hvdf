@@ -31,7 +31,7 @@ public class ChannelServiceTest extends HVDFChannelTest{
     	channel.pushSample(sample, false, new BasicDBList());
     	
     	// get the sample by id
-    	List<Sample> samples = channel.query(200, 150, null, null, 50);
+    	List<Sample> samples = channel.query(null, 200, 150, null, null, 50);
     	assertEquals(samples.size(), 1);
     	Sample found = samples.get(0);
     	assertEquals(found.getTimeStamp(), 100);    	
@@ -52,13 +52,13 @@ public class ChannelServiceTest extends HVDFChannelTest{
     	channel.pushSample(sample, false, new BasicDBList());
     	
     	// get the sample by id
-    	List<Sample> samples = channel.query(100050, 99900, null, null, 50);
+    	List<Sample> samples = channel.query(null, 100050, 99900, null, null, 50);
     	assertEquals(samples.size(), 1);
     	
-    	samples = channel.query(99900, 99000, null, null, 50);
+    	samples = channel.query(null, 99900, 99000, null, null, 50);
     	assertEquals(samples.size(), 0);
     	
-    	samples = channel.query(100050, 100000, null, null, 50);
+    	samples = channel.query(null, 100050, 100000, null, null, 50);
     	assertEquals(samples.size(), 2);
     	
     }

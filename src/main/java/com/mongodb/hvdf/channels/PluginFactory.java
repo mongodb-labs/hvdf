@@ -5,15 +5,16 @@ import java.util.Map;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
-import com.mongodb.hvdf.allocators.PeriodicAllocator;
-import com.mongodb.hvdf.allocators.SingleCollectionAllocator;
 import com.mongodb.hvdf.api.FrameworkError;
 import com.mongodb.hvdf.api.ServiceException;
 import com.mongodb.hvdf.configuration.PluginConfiguration;
-import com.mongodb.hvdf.interceptors.BatchingInterceptor;
-import com.mongodb.hvdf.interceptors.RetryInterceptor;
-import com.mongodb.hvdf.tasks.IndexingTask;
-import com.mongodb.hvdf.tasks.LimitCollectionsTask;
+
+// Built in plugin packages
+import com.mongodb.hvdf.interceptors.*;
+import com.mongodb.hvdf.allocators.*;
+import com.mongodb.hvdf.oid.*;
+import com.mongodb.hvdf.rollup.*;
+import com.mongodb.hvdf.tasks.*;
 
 public class PluginFactory {
 
@@ -24,12 +25,37 @@ public class PluginFactory {
 			new HashMap<String, String>();
 	
 	static{
-		registeredPlugins.put("retry", RetryInterceptor.class.getName());
-		registeredPlugins.put("batching", BatchingInterceptor.class.getName());
+		
+		// Register the "friendly" names of built in plugins so the
+		// config does not need full class names like a custom plugin does
+		
+		// Id Factories
+		registeredPlugins.put("time_only", HiDefTimeIdFactory.class.getName());
+		registeredPlugins.put("source_time_document", SourceTimeDocumentIdFactory.class.getName());
+
+		// Allocators
 		registeredPlugins.put("periodic", PeriodicAllocator.class.getName());
 		registeredPlugins.put("no_slicing", SingleCollectionAllocator.class.getName());
+
+		// Interceptors
+		registeredPlugins.put("retry", RetryInterceptor.class.getName());
+		registeredPlugins.put("batching", BatchingInterceptor.class.getName());
+		
+		// Tasks
 		registeredPlugins.put("ensure_indexes", IndexingTask.class.getName());
 		registeredPlugins.put("limit_slices", LimitCollectionsTask.class.getName());
+		
+		// Storage
+		registeredPlugins.put("rollup", RollupStorageInterceptor.class.getName());
+		registeredPlugins.put("raw", RawStorageInterceptor.class.getName());
+		
+		// Rollup Operations
+		registeredPlugins.put("max", MaxRollup.class.getName());
+		registeredPlugins.put("min", MinRollup.class.getName());
+		registeredPlugins.put("count", CountRollup.class.getName());
+		registeredPlugins.put("total", TotalRollup.class.getName());
+		registeredPlugins.put("group_count", GroupCountRollup.class.getName());
+		
 	}
 
 

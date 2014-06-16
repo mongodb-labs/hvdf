@@ -9,7 +9,6 @@ import com.mongodb.hvdf.api.Sample;
 import com.mongodb.hvdf.channels.Channel;
 import com.mongodb.hvdf.util.HVDFChannelTest;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.*;

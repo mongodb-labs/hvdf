@@ -40,7 +40,7 @@ public class BatchSampleTest extends HVDFChannelTest{
     	channel.pushSample(batch, true, new BasicDBList());
     	
     	// get the sample by id
-    	List<Sample> samples = channel.query(TimeUnit.DAYS.toMillis(50), TimeUnit.DAYS.toMillis(50), null, null, 1000);
+    	List<Sample> samples = channel.query(null, TimeUnit.DAYS.toMillis(50), TimeUnit.DAYS.toMillis(50), null, null, 1000);
     	assertEquals(samples.size(), 1000);
     	Sample found = samples.get(0);
     	assertEquals(found.getTimeStamp(), TimeUnit.HOURS.toMillis(batchSize));    	
@@ -64,7 +64,7 @@ public class BatchSampleTest extends HVDFChannelTest{
     	Thread.sleep(testSize/2);
     	
     	// get the sample by id
-    	List<Sample> samples = channel.query(TimeUnit.DAYS.toMillis(testSize/20), 
+    	List<Sample> samples = channel.query(null, TimeUnit.DAYS.toMillis(testSize/20), 
     			TimeUnit.DAYS.toMillis(testSize/20), null, null, testSize);
     	assertEquals(samples.size(), testSize);
     	Sample found = samples.get(0);

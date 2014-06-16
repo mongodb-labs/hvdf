@@ -76,7 +76,7 @@ public class ChannelConfigTest extends HVDFChannelTest{
     	sample.append(Sample.DATA_KEY, new BasicDBObject("v", 240));
     	channel.pushSample(sample, false, new BasicDBList());
     	
-    	List<Sample> recalled = channel.query(1000, 1000, null, null, 1);
+    	List<Sample> recalled = channel.query(null, 1000, 1000, null, null, 1);
     	
     	// The interceptors should have added the field x and then posted the values [2,1]
     	BasicDBList testList = (BasicDBList) recalled.get(0).getData().get("x");

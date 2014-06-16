@@ -16,6 +16,7 @@ public class PluginConfiguration {
 		public static final String ALLOCATOR = "hvdf_allocator";
 		public static final String DB = "hvdf_database";
 		public static final String PREFIX = "hvdf_prefix";
+		public static final String ID_FACTORY = "id_factory";
 	}
 	
 	private static HashSet<Class<?>> registeredClasses = new HashSet<Class<?>>();
