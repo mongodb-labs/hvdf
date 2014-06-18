@@ -118,6 +118,103 @@ any combination, for example
 Note that time slicing the channel does not affect queries, the channel will ensure that
 queries spanning time ranges that are larger than a slice will operate across slices as necessary.
 
+Storage
+-------
+
+A StorageInterceptor plugin is used to arrange how samples are organized into MongoDB documents. 
+By default, the "raw" storage plugin is used when not specified which stores each sample in it's
+own document. To explictly configure the raw storage plugin for a channel, we add the following to
+it's configuration :
+
+    "storage" :
+    {
+    	"type"   : "raw",
+    	"config" : {}
+    }	
+ 
+Alternatively, a channel may use the "rollup" StorageInterceptor which is capable of summarizing a
+number of documents over a given time period into a single MongoDB document. For example, the following
+storage configuration will generate a document per hour into the channel which contains only the 
+maximum and minimum value of "data.v" in any sample for that period.  
+
+    "storage" :
+    {
+    	"type"   : "rollup",
+    	"config" : 
+    	{
+		    
+    	    "document_period" : {"hours" : 1},
+    	    "rollup_ops" :
+    	    [
+    	    	{
+    	    	    "type"   : "max",
+    	    	    "config" : { "data.v" : true }
+    	    	},
+    	    	{
+    	    	    "type"   : "min",
+    	    	    "config" : { "data.v" : true }
+    	    	}
+    	    ]	
+    	}
+    }
+
+The rollup configuration is very flexible, the rollup_ops field can be used to configure a wide
+range of summary information in the channel documents. These operations are implemented as plugins 
+to the HVDF framework, the built-in operators [can be found here](src/main/java/com/mongodb/hvdf/rollup).
+
+Sample ID Generation
+--------------------
+
+When a sample is written  by a channel, it is uniquely identified by a sample ID that is 
+stored in the _id field of the resulting MongoDB document. There are many ways in which the ID can be 
+constructed and the choosing the ideal ID construction depends on a number of factors.
+
+By default, each sample for a raw feed embed the timestamp of the sample into a standard MongoDB
+ObjectId instance along with some other information to make it unique. This keeps the _id value 
+(and the _id index) small and also maintains the index in time order. This type of index is
+optimal for querying across a time range for ALL sources, however a second index would be 
+required for querying on both sourceId and time.
+
+In circumstances where queries are typically on a single source, contructing a document 
+that embeds both the timestamp and sourceId values into the _id value (assuming this combination
+always yields a unique key) can be ideal. HVDF implements "id_factory" plugins to determine which _id 
+construction to use and will construct queries internally to take advantage of data stored in the ID.
+
+To select a non-default ID construction type, it can be specified in the channel storage configuration
+as follows :
+
+    "storage" :
+    {
+        "type"   : "raw",
+        "config" : 
+        {
+            "id_factory" : 
+            {
+                "type"   : "source_time_document",
+                "config" : {  }
+            }   	
+        }
+    }	
+
+
+The "source_time_document" id_type plugin will create an _id field that embeds the sourceId and 
+timestamp in that order. For example, if the sourceId for a sample is a string, the _id will
+be of the following form :
+
+    "_id" : {
+        "source" : "sensor1",
+        "ts" : NumberLong(324000000)
+    }
+
+Although this is ideal for queries targeted by sourceId and time, it is not well suited to
+querying across all (or a large number of) sources for a specific time range. Another 
+recommended use of the source_time_document ID is for channels using rollup style storage, since
+these channels are implemented using document updates keyed on specific sourceId and time values.
+
+In future iterations of HVDF, more id_type implementations will be added to support more advanced
+or optimized ID choices. 
+
+
 Interceptors
 ============
 

@@ -17,32 +17,32 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.hvdf.allocators.CollectionAllocator;
 import com.mongodb.hvdf.api.Sample;
-import com.mongodb.hvdf.channels.ChannelInterceptor;
 import com.mongodb.hvdf.channels.PluginFactory;
+import com.mongodb.hvdf.channels.StorageInterceptor;
 import com.mongodb.hvdf.configuration.PluginConfiguration;
 import com.mongodb.hvdf.configuration.PluginConfiguration.HVDF;
 import com.mongodb.hvdf.configuration.TimePeriod;
-import com.mongodb.hvdf.oid.SampleIdFactory;
+import com.mongodb.hvdf.oid.SourceTimeDocumentIdFactory;
 import com.mongodb.hvdf.rollup.RollupOperation;
 
-public class RollupStorageInterceptor extends ChannelInterceptor{
+public class RollupStorageInterceptor extends StorageInterceptor{
 
-    private static Logger logger = LoggerFactory.getLogger(RollupStorageInterceptor.class);
+	private static Logger logger = LoggerFactory.getLogger(RollupStorageInterceptor.class);
 
     private static final String ROLLUP_OPS_CONFIG = "rollup_ops";
     private static final String ROLLUP_PERIOD_CONFIG = "document_period";
 	
 	private final CollectionAllocator collectionAllocator;
-	private final SampleIdFactory idFactory;
 	private final List<RollupOperation> rollupOps;
 	private final long rollupPeriod;
 	
 
 	public RollupStorageInterceptor(PluginConfiguration config){
 		
+		super(config);
+		
 		// Need an allocator to work on collections and ids
 		this.collectionAllocator = config.get(HVDF.ALLOCATOR, CollectionAllocator.class);
-		this.idFactory = config.get(HVDF.ID_FACTORY, SampleIdFactory.class);
 		
 		this.rollupPeriod = (config.get(ROLLUP_PERIOD_CONFIG, TimePeriod.class)).getAs(TimeUnit.MILLISECONDS);
 		
@@ -56,6 +56,14 @@ public class RollupStorageInterceptor extends ChannelInterceptor{
 		}
 	}
 		
+    @Override
+	protected PluginConfiguration getDefaultIdFactoryConfig() {
+    	
+    	// By default, the rollup channel uses a source-time doc as ID
+		return new PluginConfiguration(new BasicDBObject(PluginFactory.TYPE_KEY, 
+				SourceTimeDocumentIdFactory.class.getName()), StorageInterceptor.class);
+	}
+
 	@Override
 	public void pushSample(DBObject sample, boolean isList, BasicDBList resultIds) {
 		

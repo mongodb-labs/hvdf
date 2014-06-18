@@ -14,25 +14,23 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.hvdf.allocators.CollectionAllocator;
 import com.mongodb.hvdf.api.Sample;
-import com.mongodb.hvdf.channels.ChannelInterceptor;
+import com.mongodb.hvdf.channels.StorageInterceptor;
 import com.mongodb.hvdf.configuration.PluginConfiguration;
 import com.mongodb.hvdf.configuration.PluginConfiguration.HVDF;
 import com.mongodb.hvdf.oid.SampleId;
-import com.mongodb.hvdf.oid.SampleIdFactory;
 
-public class RawStorageInterceptor extends ChannelInterceptor{
+public class RawStorageInterceptor extends StorageInterceptor {
 
     private static Logger logger = LoggerFactory.getLogger(RawStorageInterceptor.class);
 
-	private final CollectionAllocator collectionAllocator;
-	private final SampleIdFactory idFactory;
-	
+	private final CollectionAllocator collectionAllocator;	
 
 	public RawStorageInterceptor(PluginConfiguration config){
 		
+		super(config);
+		
 		// Need an allocator to work on collections and ids
 		this.collectionAllocator = config.get(HVDF.ALLOCATOR, CollectionAllocator.class);
-		this.idFactory = config.get(HVDF.ID_FACTORY, SampleIdFactory.class);
 	}
 		
 	public void pushSample(DBObject sample, boolean isList, BasicDBList resultList) {
@@ -46,7 +44,7 @@ public class RawStorageInterceptor extends ChannelInterceptor{
 			
 			// Create an oid to embed the sample time
 			BasicDBObject doc = ((BasicDBObject) sample);
-			SampleId _id = idFactory.createId(sample);
+			SampleId _id = this.idFactory.createId(sample);
 			sample.put(Sample.ID_KEY, _id.toObject());
 			resultList.add(_id.toObject());
 
@@ -73,7 +71,7 @@ public class RawStorageInterceptor extends ChannelInterceptor{
 				
 				// prepare the sample to batch
 				BasicDBObject doc = (BasicDBObject) (sample.get(sampleIdx));
-				SampleId _id = idFactory.createId(doc);
+				SampleId _id = this.idFactory.createId(doc);
 				doc.put(Sample.ID_KEY, _id.toObject());
 				resultList.add(_id.toObject());
 				long timestamp = doc.getLong(Sample.TS_KEY);

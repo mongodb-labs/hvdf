@@ -1,0 +1,20 @@
+{
+    "time_slicing" : 
+    {
+        "type"   : "periodic",
+        "config" : { "period" : {"seconds" : 20} }
+    },
+
+    "storage" :
+    {
+    	"type"   : "raw",
+    	"config" : 
+    	{
+    	    "id_factory" : 
+			{
+				"type"   : "source_time_document",
+				"config" : {  }
+			}   	
+		}
+    }	
+}

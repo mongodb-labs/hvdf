@@ -1,9 +1,4 @@
 {    
-    "id_type" : 
-    {
-        "type"   : "source_time_document",
-        "config" : {  }
-    },
     
     "time_slicing" : 
     {
@@ -16,6 +11,7 @@
     	"type"   : "rollup",
     	"config" : 
     	{
+		    
     	    "document_period" : {"hours" : 1},
     	    "rollup_ops" :
     	    [

@@ -2,6 +2,7 @@ package com.mongodb.hvdf.channel;
 
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
+import com.mongodb.DBObject;
 import com.mongodb.hvdf.api.Sample;
 import com.mongodb.hvdf.api.ServiceException;
 import com.mongodb.hvdf.channels.Channel;
@@ -10,6 +11,7 @@ import com.mongodb.hvdf.util.JSONParam;
 import com.yammer.dropwizard.testing.JsonHelpers;
 
 import org.junit.Test;
+
 import static org.junit.Assert.*;
 
 import java.net.UnknownHostException;
@@ -82,5 +84,26 @@ public class ChannelConfigTest extends HVDFChannelTest{
     	BasicDBList testList = (BasicDBList) recalled.get(0).getData().get("x");
     	assertEquals(testList.get(0), 2);
     	assertEquals(testList.get(1), 1);   	
+    }
+
+    @Test
+    public void testNonDefaultIdFactoryConfig() throws Exception {
+
+    	// Try to configure
+    	String configPath = "plugin_config/raw_channel_non_default_id_type.json";
+    	Channel channel = getConfiguredChannel(configPath);
+
+    	BasicDBObject sample = new BasicDBObject(Sample.TS_KEY, 100L);
+    	sample.append(Sample.DATA_KEY, new BasicDBObject("v", 240));
+    	channel.pushSample(sample, false, new BasicDBList());
+    	
+    	List<Sample> recalled = channel.query(null, 1000, 1000, null, null, 1);
+    	
+    	// The interceptors should have added the field x and then posted the values [2,1]
+    	Object testId = recalled.get(0).getId();
+    	assertTrue(testId instanceof DBObject);
+    	DBObject testIdDoc = (DBObject) testId;
+    	assertEquals(testIdDoc.get(Sample.TS_KEY), 100L);   	
+    	assertEquals(testIdDoc.get(Sample.SOURCE_KEY), null);   	
     }
 }

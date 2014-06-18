@@ -1,16 +1,5 @@
 {
     
-    "storage" :
-    {
-    	"type"   : "raw",
-    	"config" : {}
-    },
-
-    "storage" :
-    {
-    	"type"   : "devnull",
-    	"config" : {}
-    },
     
     "storage" :
     {

@@ -24,7 +24,6 @@ import com.mongodb.hvdf.configuration.PluginConfiguration.HVDF;
 import com.mongodb.hvdf.configuration.TimePeriod;
 import com.mongodb.hvdf.interceptors.RawStorageInterceptor;
 import com.mongodb.hvdf.interceptors.RequiredFieldsInterceptor;
-import com.mongodb.hvdf.oid.HiDefTimeIdFactory;
 import com.mongodb.hvdf.oid.SampleIdFactory;
 import com.mongodb.hvdf.util.MongoDBQueryHelpers;
 
@@ -35,10 +34,6 @@ public class SimpleChannel implements Channel {
 	// Config items and defaults	
 	private static final String STORAGE_KEY = "storage";
 	private static final String TIME_SLICING_KEY = "time_slicing";
-	private static final String ID_FACTORY_KEY = "id_type";
-	private static final PluginConfiguration DEFAULT_ID_FACTORY = 
-			new PluginConfiguration(new BasicDBObject(PluginFactory.TYPE_KEY, 
-					HiDefTimeIdFactory.class.getName()), SimpleChannel.class);
 	private static final PluginConfiguration DEFAULT_TIME_SLICING = 
 			new PluginConfiguration(new BasicDBObject(PluginFactory.TYPE_KEY, 
 					SingleCollectionAllocator.class.getName()), SimpleChannel.class);
@@ -139,15 +134,18 @@ public class SimpleChannel implements Channel {
 		allocator = PluginFactory.loadPlugin(CollectionAllocator.class, allocatorConfig, injectedConfig);
 		injectedConfig.put(HVDF.ALLOCATOR, this.allocator);
 		
-		// Use an ObjectId that can support ms resolution time and
-		// install the interceptor to insert them
-		PluginConfiguration idFactoryConfig = parsedConfig.get(
-				ID_FACTORY_KEY, PluginConfiguration.class, DEFAULT_ID_FACTORY);
-		idFactory = PluginFactory.loadPlugin(SampleIdFactory.class, idFactoryConfig, injectedConfig);
+		// We always have a terminating storage interceptor for storing the actual document
+		PluginConfiguration storageConfig = parsedConfig.get(
+				STORAGE_KEY, PluginConfiguration.class, DEFAULT_STORAGE);		
+		StorageInterceptor storage = PluginFactory.loadPlugin(
+				StorageInterceptor.class, storageConfig, injectedConfig);
+		
+		// The storage interceptor determines the id factory
+		this.idFactory = storage.getIdFactory();
 		injectedConfig.put(HVDF.ID_FACTORY, this.idFactory);
 
 		// Setup the interceptor chain
-		configureInterceptors(parsedConfig, injectedConfig);
+		configureInterceptors(storage, parsedConfig, injectedConfig);
 				
 		// Create an empty list of listeners
 		this.listeners = new ArrayList<ChannelListener>();
@@ -177,12 +175,10 @@ public class SimpleChannel implements Channel {
 		}		
 	}
 
-	private void configureInterceptors(PluginConfiguration parsedConfig, HashMap<String, Object> injectedConfig) {
+	private void configureInterceptors(StorageInterceptor storage, PluginConfiguration parsedConfig, HashMap<String, Object> injectedConfig) {
 		
-		// We always have a terminating storage interceptor for storing the actual document
-		PluginConfiguration storageConfig = parsedConfig.get(
-				STORAGE_KEY, PluginConfiguration.class, DEFAULT_STORAGE);
-		this.interceptorChain = PluginFactory.loadPlugin(ChannelInterceptor.class, storageConfig, injectedConfig);
+		// The chain always terminates with storage
+		this.interceptorChain = storage;
 		
 		// Load the interceptor list if present		
 		List<PluginConfiguration> configList = parsedConfig.getList(INTERCEPTOR_LIST, PluginConfiguration.class);

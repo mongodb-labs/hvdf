@@ -1,9 +1,4 @@
 {    
-    "id_type" : 
-    {
-        "type"   : "source_time_document",
-        "config" : {  }
-    },
     
     "time_slicing" : 
     {
